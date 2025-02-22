@@ -2,7 +2,8 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import ttk
 from datetime import *
-import openpyxl
+import threading
+import openpyxl 
 import copy
 import time
 import random
@@ -295,10 +296,13 @@ def out():
     rnd = ''
     for i in range(4):
         rnd += str(random.randint(0, 9))
-    wb.save('schedule' + '_' + str(now.date()) + '_' + rnd + '.xlsx')
+    script_dir = os.path.dirname(os.path.abspath(__file__))  
+    save_path = os.path.join(script_dir, f"schedule_{now.date()}_{rnd}.xlsx")
+    wb.save(save_path)
 
 finish = False
 schedule = {}
+start_schedule = {}
 names_of_classes = []
 def generation():
     ans = calc()
@@ -330,9 +334,12 @@ def generation():
             if ans < best:
                 best = ans
                 best_schedule = schedule
-
+    print('ans=', ans)
+    global is_generating
     for i in last:
         if i not in merge_lessons:
+            print('False', i)
+            is_generating = False
             return
 
     global finish
@@ -359,6 +366,7 @@ def generation():
             for j in range(len(data)):
                 data[j].append(None)
     out()
+    is_generating = False
 
 def pre_main1():
     if not flag[0] or not flag[1]:
@@ -374,6 +382,26 @@ def pre_main2():
     label_info.grid(padx=10, pady=20)
     window.update_idletasks()
     window.after(1, main(label_info))
+
+def check_generation_status(label_info):
+    if is_generating:
+        window.after(500, check_generation_status, label_info)
+    else:
+        global finish
+        if not finish:
+            global schedule, start_schedule
+            schedule = copy.deepcopy(start_schedule)
+            start_generation(label_info)
+        else:
+            label_info.config(text=' Генерания\n завершена\n      ' + rnd)
+
+is_generating = False
+def start_generation(label_info):
+    global is_generating
+    is_generating = True
+    thread = threading.Thread(target=generation)
+    thread.start()
+    check_generation_status(label_info)
 
 def main(label_info):
     build_classes_in_parallel()
@@ -396,14 +424,12 @@ def main(label_info):
         for letter in value:
             schedule[encrypt(key, letter)] = WeeklySchedule(key, letter)
             names_of_classes.append(encrypt(key, letter))
+    global start_schedule
     start_schedule = copy.deepcopy(schedule)
 
-    f = False
     global finish
-    while not finish:
-        schedule = copy.deepcopy(start_schedule)
-        generation()
-    label_info.config(text=' Генерания\n завершена\n      ' + rnd)
+    schedule = copy.deepcopy(start_schedule)
+    start_generation(label_info)
 
 style0 = ttk.Style()
 style0.configure('0.TButton', font=('Helvetica', 100, 'bold'), padding=0, relief='flat')
