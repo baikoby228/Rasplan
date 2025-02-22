@@ -8,6 +8,7 @@ import copy
 import time
 import random
 import math
+import sys
 import os
 
 window = Tk()
@@ -16,7 +17,10 @@ window.geometry('312x338')
 window.resizable(False, False)
 window.title("Rasplan")
 
-icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
+if getattr(sys, 'frozen', False):
+    icon_path = os.path.join(sys._MEIPASS, 'icon.ico')
+else:
+    icon_path = os.path.join(os.path.dirname(__file__), 'icon.ico')
 window.iconbitmap(icon_path)
 
 def clear_window():
@@ -296,7 +300,10 @@ def out():
     rnd = ''
     for i in range(4):
         rnd += str(random.randint(0, 9))
-    script_dir = os.path.dirname(os.path.abspath(__file__))  
+    if getattr(sys, 'frozen', False):
+        script_dir = os.path.dirname(sys.executable)
+    else:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
     save_path = os.path.join(script_dir, f"schedule_{now.date()}_{rnd}.xlsx")
     wb.save(save_path)
 
@@ -334,11 +341,9 @@ def generation():
             if ans < best:
                 best = ans
                 best_schedule = schedule
-    print('ans=', ans)
     global is_generating
     for i in last:
         if i not in merge_lessons:
-            print('False', i)
             is_generating = False
             return
 
